@@ -1,6 +1,6 @@
 apiVersion: v2
 name: leartech-angular-service-template
 description: Leartech authentication UI — login, 2FA, OAuth2 callback
-version: 0.1.0
-appVersion: 0.1.0
+version: 0.0.1
+appVersion: 0.0.1
 type: application
