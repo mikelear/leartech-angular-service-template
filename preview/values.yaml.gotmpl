@@ -1,0 +1,19 @@
+image:
+  repository: "{{ requiredEnv "DOCKER_REGISTRY" }}/{{ requiredEnv "DOCKER_REGISTRY_ORG" }}/{{ requiredEnv "APP_NAME" }}"
+  tag: "{{ requiredEnv "VERSION" }}"
+
+replicaCount: 1
+
+# Looser resources for previews
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    memory: 64Mi
+
+# Runtime config override per-preview. Empty by default; consumers wire
+# up preview-scoped API endpoints + feature flags here.
+config:
+  api: ""
+  featureFlags: {}

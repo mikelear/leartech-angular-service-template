@@ -1,0 +1,43 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 9am on Monday"],
+  "platformAutomerge": true,
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "groupName": "patch updates"
+    },
+    {
+      "matchUpdateTypes": ["minor"],
+      "groupName": "minor updates"
+    },
+    {
+      "matchManagers": ["helmv3"],
+      "groupName": "helm chart updates"
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "docker base image updates"
+    },
+    {
+      "matchPackageNames": ["ghcr.io/mikelear/leartech-nginx"],
+      "groupName": "leartech-nginx",
+      "automerge": true
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@angular/"],
+      "groupName": "angular"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["\\.lighthouse/.+\\.yaml$"],
+      "matchStrings": ["image:\\s*(?<depName>[^:\\s]+):(?<currentValue>[^\\s]+)"],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}

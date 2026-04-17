@@ -1,0 +1,43 @@
+environments:
+  default:
+    values:
+    - jx-values.yaml
+---
+helmDefaults:
+  timeout: 600
+repositories:
+- name: jx3
+  url: https://jenkins-x-charts.github.io/repo
+
+# Preview ingress host: <app>-<pr-short>.jx.leartech.com
+# e.g. leartech-angular-service-template-pr-1.jx.leartech.com
+{{- $namespace := requiredEnv "PREVIEW_NAMESPACE" }}
+{{- $appName := requiredEnv "APP_NAME" }}
+{{- $shortNs := regexReplaceAll (printf "^jx-mikelear-%s-" $appName) $namespace "" }}
+{{- $domain := "jx.leartech.com" }}
+
+releases:
+- chart: jx3/jx-verify
+  name: jx-verify
+  namespace: '{{ $namespace }}'
+
+- chart: '../charts/{{ $appName }}'
+  name: preview
+  wait: true
+  createNamespace: true
+  namespace: '{{ $namespace }}'
+  values:
+  - jx-values.yaml
+  - values.yaml.gotmpl
+  set:
+  - name: ingress.enabled
+    value: true
+  - name: ingress.hosts[0].host
+    value: '{{ $appName }}-{{ $shortNs }}.{{ $domain }}'
+  - name: ingress.hosts[0].paths[0].path
+    value: /
+  - name: ingress.hosts[0].paths[0].pathType
+    value: Prefix
+
+# Preview URL: https://{app}-{pr-short}.jx.leartech.com
+# Once pod is Ready, / and /health both reachable.
