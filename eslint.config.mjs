@@ -1,16 +1,15 @@
 // ESLint flat config for Angular 20.
 //
-// Currently self-contained per consumer repo (no cross-repo
-// centralisation). Rationale: ESLint flat config is native ESM — the
-// HTTP-fetch + yq-merge pattern we use for golangci-lint doesn't map
-// cleanly. If fleet lint divergence becomes a pain, the migration
-// path is an npm package `@mikelear/eslint-config-leartech-angular`
-// that consumers extend from; flat config supports `extends:
-// [require('@mikelear/eslint-config-leartech-angular')]` cleanly.
+// Uses the unified `angular-eslint` meta-package (Angular 18+ ships
+// the configs + processor + template-parser under one package).
+//
+// Centralisation: kept self-contained per consumer repo. ESM flat config
+// doesn't compose cleanly over HTTP (what works for golangci-lint's
+// yq-merge doesn't map). Migration path if fleet rule divergence becomes
+// a pain: publish `@mikelear/eslint-config-leartech-angular` and
+// `extends` from it.
 import tseslint from 'typescript-eslint';
-import angular from '@angular-eslint/eslint-plugin';
-import angularTemplate from '@angular-eslint/eslint-plugin-template';
-import angularTemplateParser from '@angular-eslint/template-parser';
+import angular from 'angular-eslint';
 
 export default tseslint.config(
   {
@@ -18,8 +17,8 @@ export default tseslint.config(
     extends: [
       ...tseslint.configs.recommended,
       ...tseslint.configs.stylistic,
+      ...angular.configs.tsRecommended,
     ],
-    plugins: { '@angular-eslint': angular },
     processor: angular.processInlineTemplates,
     rules: {
       '@angular-eslint/directive-selector': [
@@ -39,11 +38,7 @@ export default tseslint.config(
   },
   {
     files: ['**/*.html'],
-    languageOptions: { parser: angularTemplateParser },
-    plugins: { '@angular-eslint/template': angularTemplate },
-    rules: {
-      '@angular-eslint/template/banana-in-box': 'error',
-      '@angular-eslint/template/no-negated-async': 'error',
-    },
+    extends: [...angular.configs.templateRecommended],
+    rules: {},
   },
 );
