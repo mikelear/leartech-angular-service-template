@@ -1,28 +1,24 @@
 replicaCount: 1
-
 image:
-  repository: ghcr.io/mikelear/leartech-angular-service-template
-  tag: latest
+  repository: us-central1-docker.pkg.dev/product-first/oci/leartech-angular-service-template
+  tag: 0.0.2
   pullPolicy: IfNotPresent
-
 service:
   type: ClusterIP
   port: 80
-
 ingress:
   enabled: true
   annotations:
     kubernetes.io/ingress.class: nginx
   hosts:
-    - host: leartech-angular-service-template-jx-staging.jx.leartech.com
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
+  - host: leartech-angular-service-template-jx-staging.jx.leartech.com
+    paths:
+    - path: /
+      pathType: ImplementationSpecific
   tls:
-    - secretName: tls-jx-leartech-com
-      hosts:
-        - leartech-angular-service-template-jx-staging.jx.leartech.com
-
+  - secretName: tls-jx-leartech-com
+    hosts:
+    - leartech-angular-service-template-jx-staging.jx.leartech.com
 resources:
   requests:
     cpu: 50m
@@ -30,10 +26,8 @@ resources:
   limits:
     cpu: 100m
     memory: 128Mi
-
 jx:
   releasedByJX: true
-
 # Runtime config served at /api.conf.json — populated per-environment in
 # preview helmfile / staging / prod values files. See
 # hub/shared-rules/conventions.md § Frontend runtime config.
