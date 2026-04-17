@@ -1,16 +1,16 @@
-// Karma config used by `ng test`. ChromeHeadlessNoSandbox launcher lets
-// the catalog ng-test task run inside a rootless container without
-// --privileged.
+// Karma config consumed by `@angular/build:karma` (Angular 20 application
+// builder). No `@angular-devkit/build-angular/plugins/karma` import — the
+// new builder wires plugins internally. ChromeHeadlessNoSandbox lets the
+// catalog ng-test task run inside a rootless container without --privileged.
 module.exports = function (config) {
   config.set({
     basePath: '',
-    frameworks: ['jasmine', '@angular-devkit/build-angular'],
+    frameworks: ['jasmine'],
     plugins: [
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
       require('karma-jasmine-html-reporter'),
       require('karma-coverage'),
-      require('@angular-devkit/build-angular/plugins/karma'),
     ],
     client: {
       jasmine: {},

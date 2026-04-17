@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
-  standalone: false,
   selector: 'app-root',
+  imports: [RouterOutlet],
   template: `
     <main class="shell">
       <header>
@@ -16,6 +17,7 @@ import { Component } from '@angular/core';
           per-service wiring checklist.
         </p>
       </section>
+      <router-outlet />
     </main>
   `,
 })
