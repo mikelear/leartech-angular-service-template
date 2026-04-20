@@ -25,3 +25,12 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/name: {{ include "leartech-angular-service-template.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/* Library aliases — map leartech.* to chart-specific names */}}
+{{- define "leartech.fullname" -}}
+{{ include "leartech-angular-service-template.fullname" . }}
+{{- end }}
+
+{{- define "leartech.labels" -}}
+{{ include "leartech-angular-service-template.labels" . }}
+{{- end }}

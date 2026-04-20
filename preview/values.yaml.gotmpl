@@ -4,6 +4,12 @@ image:
 
 replicaCount: 1
 
+# jxRequirements override for preview — set namespaceSubDomain to -prN.
+# Domain is inherited from jx-values.yaml (cluster-specific).
+jxRequirements:
+  ingress:
+    namespaceSubDomain: "-pr{{ requiredEnv "PULL_NUMBER" }}."
+
 # Looser resources for previews
 resources:
   requests:

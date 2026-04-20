@@ -6,7 +6,7 @@ import { defineConfig } from 'playwright/test';
  * PREVIEW_URL is set by the catalog end2end-ui task (or locally via env).
  * Tests run headless Chromium against the live preview deploy.
  *
- * On failure: captures screenshots, videos, and traces.
+ * Captures screenshots, videos, and traces on every run.
  * CI uploads these to GCS and links them in the PR comment.
  */
 export default defineConfig({
@@ -17,9 +17,9 @@ export default defineConfig({
   use: {
     baseURL: process.env['PREVIEW_URL'] || 'http://localhost:4200',
     headless: true,
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
-    trace: 'retain-on-failure',
+    screenshot: 'on',
+    video: 'on',
+    trace: 'on',
   },
   reporter: [['list']],
   outputDir: 'test-results',
