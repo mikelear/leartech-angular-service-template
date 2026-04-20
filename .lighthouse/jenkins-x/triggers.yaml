@@ -39,6 +39,11 @@ spec:
     always_run: true
     optional: true
     source: end2end.yaml
+  - name: end2end-ui
+    context: "end2end-ui"
+    always_run: true
+    optional: true
+    source: end2end-ui.yaml
   - name: ai-feedback
     context: ai-feedback
     always_run: false
