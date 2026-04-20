@@ -13,6 +13,10 @@ spec:
         stepTemplate:
           image: uses:mikelear/leartech-pipeline-catalog/tasks/end2end/pullrequest.yaml@main
           name: ""
+          env:
+          # leartech-nginx serves /health not /health/live
+          - name: END2END_HEALTH_PATH
+            value: /health
           resources: {}
           workingDir: /workspace/source
         steps:

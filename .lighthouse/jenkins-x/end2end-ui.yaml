@@ -13,6 +13,16 @@ spec:
         stepTemplate:
           image: uses:mikelear/leartech-pipeline-catalog/tasks/end2end-ui/pullrequest.yaml@main
           name: ""
+          env:
+          - name: GIT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: tekton-git
+                key: password
+                optional: true
+          # leartech-nginx serves /health not /health/live
+          - name: END2END_HEALTH_PATH
+            value: /health
           resources: {}
           workingDir: /workspace/source
         steps:
