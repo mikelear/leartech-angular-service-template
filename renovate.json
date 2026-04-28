@@ -28,6 +28,14 @@
     },
     {
       "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@mikelear/leartech-"],
+      "groupName": "leartech internal libs",
+      "schedule": ["at any time"],
+      "automerge": true,
+      "automergeStrategy": "squash"
+    },
+    {
+      "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@angular/"],
       "groupName": "angular"
     }
