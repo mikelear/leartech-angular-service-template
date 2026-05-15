@@ -1,14 +1,17 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterLink, RouterOutlet],
   template: `
     <main class="shell">
       <header>
         <h1>{{ title }}</h1>
         <p class="sub">Golden Angular SPA service template.</p>
+        <nav>
+          <a routerLink="/fleet-status">Fleet status</a>
+        </nav>
       </header>
       <section>
         <p>
@@ -20,6 +23,11 @@ import { RouterOutlet } from '@angular/router';
       <router-outlet />
     </main>
   `,
+  styles: [`
+    nav { margin-top: 0.5rem; }
+    nav a { color: #06c; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+  `],
 })
 export class AppComponent {
   title = 'leartech-angular-service-template';
