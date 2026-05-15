@@ -19,6 +19,7 @@
 helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
 {{ include "leartech-angular-service-template.selectorLabels" . }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | default .Chart.Version | quote }}
 {{- end }}
 
 {{- define "leartech-angular-service-template.selectorLabels" -}}
