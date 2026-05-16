@@ -1,5 +1,7 @@
 # Golden Dockerfile — Node build stage, leartech-nginx runtime.
-# Build stage: node:22-alpine for fast npm install + ng build.
+# Build stage: node:22-alpine for `ng build` (npm install already ran in
+# the pipeline's build-npm-install step with GitHub Packages auth, so
+# node_modules is in the kaniko build context — no `npm ci` here).
 # Runtime: leartech-nginx (nginxinc/nginx-unprivileged + golden default.conf).
 # Renovate bumps both tags on new releases.
 
@@ -7,13 +9,7 @@
 FROM node:22-alpine AS build
 
 WORKDIR /app
-
-# Dependency layer — cached unless package-lock changes
-COPY package.json package-lock.json* ./
-RUN npm ci --legacy-peer-deps
-
 COPY . .
-
 RUN npm run build
 
 # ---- runtime stage ----
