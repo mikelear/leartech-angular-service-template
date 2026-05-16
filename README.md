@@ -2,6 +2,11 @@
 
 Golden Angular SPA service template. Clone-and-rename for new Leartech Angular services. Satisfies `hub/shared-rules/golden-service-standard.md`.
 
+> **Staging prerequisites** (one-time per cluster, when forking this template into a new Angular service):
+>
+> 1. Add `helmfiles/jx-staging/configs/<your-service>.yaml` to each gitops repo populating `config.auth.authority` + `config.peers.*` per cluster — auto-promote bumps versions but never adds per-env config wiring.
+> 2. Run `leartech-auth-service/scripts/setup-auth.sh --env staging` once with your service's staging `/auth/callback` added to `EXTRA_REDIRECT_URIS` — Hydra needs the redirect_uri registered on `frontend-services` for the OIDC flow.
+
 ## Clone-and-rename
 
 ```bash
