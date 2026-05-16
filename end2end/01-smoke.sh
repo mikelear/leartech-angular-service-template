@@ -9,12 +9,23 @@
 # of output for the PR sticky comment.
 
 set -eo pipefail
-: "${PREVIEW_URL:?PREVIEW_URL must be set by the end2end task}"
+
+# Dual-mode per the observer 0.0.27+ staging-vs-preview contract:
+# STAGING_URL wins when set (arrivals-observer dispatched Job),
+# PREVIEW_URL is the fallback (catalog end2end task in PR builds).
+BASE_URL="${STAGING_URL:-${PREVIEW_URL:-}}"
+if [ -z "$BASE_URL" ]; then
+  echo "[smoke] neither STAGING_URL nor PREVIEW_URL set — nothing to test against; aborting" >&2
+  exit 1
+fi
+MODE="preview"
+[ -n "${STAGING_URL:-}" ] && MODE="staging"
+echo "[smoke] mode=${MODE} base=${BASE_URL}"
 
 check() {
   local method="$1" path="$2" want="$3"
   local code
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -X "$method" -m 10 "${PREVIEW_URL}${path}" 2>/dev/null || true)
+  code=$(curl -sS -o /dev/null -w '%{http_code}' -X "$method" -m 10 "${BASE_URL}${path}" 2>/dev/null || true)
   [ -z "$code" ] && code="000"
   if [ "$code" = "$want" ]; then
     printf '[smoke] %-4s %-16s %s\n' "$method" "$path" "HTTP $code ✓"
