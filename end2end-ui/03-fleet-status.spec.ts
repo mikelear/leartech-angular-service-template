@@ -1,32 +1,38 @@
 import { test, expect } from 'playwright/test';
 
 /**
- * Fleet-status SDK dogfood spec.
+ * Fleet-status SDK dogfood spec — STAGING-ONLY.
  *
- * Navigates to /fleet-status — the page calls each peer golden-template
- * service via direct HTTP (mirroring what the generated TS SDK does
- * under the hood). With no bearer, each peer's auth wiring should
- * respond 401.
+ * Navigates to /fleet-status, which calls each peer golden-template
+ * service via the published SDK (npm package from leartech-ts-packages).
  *
- * Renders pass for any row that gets 401 (=expected). Fail = any
- * unexpected status, CORS block, network error, etc.
+ * **Skips in PR preview**: PR-preview namespaces deploy only the
+ * angular template's own service, not peers. The fleet-status page
+ * would render a table where every row times out trying to reach a
+ * non-existent peer URL. Per the observer 0.0.27 staging-vs-preview
+ * contract, STAGING_URL presence is the discriminator — only staging
+ * dispatches have it set.
  *
- * This is the runtime proof that:
- *   1. The Angular template builds + serves successfully ✓
- *   2. The browser can reach peer services on the same cluster ✓
- *   3. Each peer's auth middleware is wired correctly ✓
+ * **In staging** (arrivals-observer dispatched Job): all peer
+ * templates are deployed at predictable URLs, the page actually
+ * calls them, and the test asserts each row reaches a terminal
+ * state (pass or fail) with a non-pending verdict.
  *
- * Phase A.5b extends this with token-mint via Hydra + authed call
- * pattern, mirroring auth-ui's spec shape.
- *
- * Note on CORS: peers may not have CORS allowed for this origin
- * yet — Phase A.5c adds the CORS layer to backend templates. Until
- * that lands, this spec gracefully captures the CORS-block failure
- * with `Failed to fetch` in the message column, which is itself a
- * useful signal (network reached, auth wiring not yet validatable
- * because CORS is upstream of auth).
+ * The strict "every peer returns 200" assertion requires CORS to be
+ * allowed on each backend template (Phase A.5c, separate workstream).
+ * Until then, this spec asserts "call completed" not "call succeeded".
  */
 test.describe('fleet status', () => {
+  test.beforeEach(() => {
+    // Skip-in-preview per observer 0.0.27 contract — fleet-status
+    // requires all 3 peer templates deployed, which only happens in
+    // staging (or local-dev pointed at staging URLs).
+    if (!process.env['STAGING_URL']) {
+      test.skip(true, 'fleet-status requires peer services — staging-only');
+    }
+  });
+
+
   test('renders fleet-status table with each peer probed', async ({ page }) => {
     await page.goto('/fleet-status', { waitUntil: 'networkidle', timeout: 15_000 });
 
