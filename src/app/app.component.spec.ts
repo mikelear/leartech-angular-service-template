@@ -1,10 +1,15 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
+    // provideRouter([]) supplies the ActivatedRoute that RouterLink
+    // injects. Without it Karma throws NG0201 because AppComponent now
+    // renders a <a routerLink="/fleet-status"> in its template.
     await TestBed.configureTestingModule({
       imports: [AppComponent],
+      providers: [provideRouter([])],
     }).compileComponents();
   });
 
