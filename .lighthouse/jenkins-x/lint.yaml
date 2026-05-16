@@ -11,7 +11,7 @@ spec:
       taskSpec:
         metadata: {}
         stepTemplate:
-          image: uses:mikelear/leartech-pipeline-catalog/tasks/ng-lint/pullrequest.yaml@main
+          image: uses:mikelear/leartech-pipeline-catalog/tasks/ng-lint/pullrequest.yaml@b768138
           name: ""
           resources: {}
           workingDir: /workspace/source
