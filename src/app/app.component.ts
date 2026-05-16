@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
+import { filter, take } from 'rxjs/operators';
 
 interface TokenClaims {
   sub?: string;
@@ -30,7 +31,9 @@ interface TokenClaims {
           @if (isAuthenticated()) {
             <button type="button" (click)="logout()" class="link-button">Sign out</button>
           } @else {
-            <button type="button" (click)="login()" class="link-button">Sign in</button>
+            <button type="button" (click)="login()" class="link-button"
+                    [attr.data-testid]="'sign-in'"
+                    [attr.data-config-ready]="configReady() ? 'true' : 'false'">Sign in</button>
           }
         </nav>
       </header>
@@ -73,9 +76,19 @@ export class AppComponent implements OnInit {
 
   isAuthenticated = signal(false);
   tokenPayload = signal<TokenClaims | null>(null);
+  // Becomes true once provideLeartechAuth's StsConfigHttpLoader has
+  // resolved api.conf.json and the OIDC SDK has its first config snapshot.
+  // The Sign in button uses this to gate clicks — calling authorize()
+  // before the config Observable settles is a silent no-op (the SDK
+  // doesn't queue authorize calls). Surfaced in the spec by the page
+  // staying on the landing route after click (no Hydra redirect).
+  configReady = signal(false);
 
   ngOnInit(): void {
     this.oidc.isAuthenticated$.subscribe(({ isAuthenticated }) => {
+      // First emission signals the SDK has loaded its config + run its
+      // initial auth check. Safe to authorize() after this point.
+      this.configReady.set(true);
       this.isAuthenticated.set(isAuthenticated);
       if (!isAuthenticated) {
         this.tokenPayload.set(null);
@@ -98,7 +111,20 @@ export class AppComponent implements OnInit {
   }
 
   login(): void {
-    this.oidc.authorize();
+    if (this.configReady()) {
+      this.oidc.authorize();
+      return;
+    }
+    // Click landed before the SDK's config-load Observable settled.
+    // Wait for the first config-ready emission, then fire authorize.
+    // Without this guard the call silently no-ops — the test rig's
+    // Playwright spec hit exactly that on first staging run.
+    this.oidc.isAuthenticated$
+      .pipe(
+        filter(() => this.configReady()),
+        take(1),
+      )
+      .subscribe(() => this.oidc.authorize());
   }
 
   logout(): void {

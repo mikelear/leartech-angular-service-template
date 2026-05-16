@@ -42,6 +42,17 @@ test.describe('login flow', () => {
     if (!alreadyAuthed) {
       const signIn = page.getByRole('button', { name: 'Sign in' });
       await expect(signIn, 'Sign in button missing from landing page').toBeVisible();
+      // Wait for the SPA's OIDC config-load Observable to settle before
+      // clicking. authorize() is a silent no-op if invoked before the SDK
+      // has its config (StsConfigHttpLoader resolves /api.conf.json
+      // asynchronously). AppComponent flips data-config-ready=true on the
+      // first isAuthenticated$ emission, which fires once the config
+      // snapshot is in place.
+      await expect(signIn, 'OIDC config did not settle in time').toHaveAttribute(
+        'data-config-ready',
+        'true',
+        { timeout: 10_000 },
+      );
       await signIn.click();
 
       // After the click we should land on auth-ui's /login under
