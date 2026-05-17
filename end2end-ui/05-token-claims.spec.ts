@@ -34,17 +34,14 @@ test.describe('token claims', () => {
     }
   });
 
-  // Marked as expected-failure pending diagnosis: manual staging testing
-  // shows mixed peer responses (go=200, rust+dotnet=401). Either path
-  // through `test.fail()` is informative:
-  //   - body throws (token's aud is missing audiences) → reported as
-  //     "expected failure" → upstream issue in SPA's audience-param flow
-  //   - body completes (token's aud has all 3) → reported as "unexpected
-  //     pass" → upstream is fine; bug is downstream in rust/dotnet's
-  //     AuthLayer multi-aud handling
-  // First staging run will resolve which one. Remove this annotation
-  // once the root cause is fixed.
-  test.fail();
+  // Diagnostic outcome (2026-05-17): staging run with test.fail() showed
+  // token.aud = [] — silent refresh via /oauth2/token (refresh_token grant)
+  // wasn't carrying the audience= param, so Hydra dropped the binding.
+  // Fixed in leartech-ts-common#12: customParamsRefreshTokenRequest +
+  // customParamsCodeRequest mirror customParamsAuthRequest. After the
+  // chain landed (ts-common 0.3.1 → renovate bump → angular template
+  // release), this spec started passing its assertions cleanly. Marker
+  // removed; spec is now a real assertion.
   test('access_token aud contains every audience from api.conf.json', async ({ page }) => {
     // Sign in (mirror of 02-login-flow.spec.ts).
     await page.goto('/', { waitUntil: 'networkidle', timeout: 20_000 });
