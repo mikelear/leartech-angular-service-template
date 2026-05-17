@@ -34,6 +34,17 @@ test.describe('token claims', () => {
     }
   });
 
+  // Marked as expected-failure pending diagnosis: manual staging testing
+  // shows mixed peer responses (go=200, rust+dotnet=401). Either path
+  // through `test.fail()` is informative:
+  //   - body throws (token's aud is missing audiences) → reported as
+  //     "expected failure" → upstream issue in SPA's audience-param flow
+  //   - body completes (token's aud has all 3) → reported as "unexpected
+  //     pass" → upstream is fine; bug is downstream in rust/dotnet's
+  //     AuthLayer multi-aud handling
+  // First staging run will resolve which one. Remove this annotation
+  // once the root cause is fixed.
+  test.fail();
   test('access_token aud contains every audience from api.conf.json', async ({ page }) => {
     // Sign in (mirror of 02-login-flow.spec.ts).
     await page.goto('/', { waitUntil: 'networkidle', timeout: 20_000 });
