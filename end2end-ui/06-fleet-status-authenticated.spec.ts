@@ -34,13 +34,11 @@ test.describe('fleet status — authenticated', () => {
     }
   });
 
-  // Marked as expected-failure until rust + dotnet AuthLayers accept
-  // the SPA's multi-audience bearer. Manual staging testing on 2026-05-17
-  // showed go=200 but rust+dotnet=401. When the root cause is fixed (see
-  // 05-token-claims.spec.ts for the diagnostic), this test will pass its
-  // assertions, Playwright will report "test was expected to fail but
-  // passed" — that's the signal to remove this annotation.
-  test.fail();
+  // First staging run (angular@0.0.22/0.0.23) showed this actually
+  // PASSES — fresh sign-in produces a token whose aud contains all 3
+  // peer service names, every backend's AuthLayer accepts. The mixed
+  // 200/401 manual observation on 2026-05-17 was a stale-browser-token
+  // artifact, not a real fleet-wide issue.
   test('every peer returns 200 when bearer is audience-bound to all', async ({ page }) => {
     // Sign in
     await page.goto('/', { waitUntil: 'networkidle', timeout: 20_000 });
