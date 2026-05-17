@@ -7,20 +7,21 @@ import { test, expect } from 'playwright/test';
  * service via the published SDK (npm package from leartech-ts-packages).
  *
  * **Skips in PR preview**: PR-preview namespaces deploy only the
- * angular template's own service, not peers. The fleet-status page
- * would render a table where every row times out trying to reach a
- * non-existent peer URL. Per the observer 0.0.27 staging-vs-preview
- * contract, STAGING_URL presence is the discriminator — only staging
- * dispatches have it set.
+ * angular template's own service, not peers. Per the observer 0.0.27
+ * staging-vs-preview contract, STAGING_URL presence is the
+ * discriminator — only staging dispatches have it set.
  *
- * **In staging** (arrivals-observer dispatched Job): all peer
- * templates are deployed at predictable URLs, the page actually
- * calls them, and the test asserts each row reaches a terminal
- * state (pass or fail) with a non-pending verdict.
+ * **In staging** (arrivals-observer dispatched Job): each peer's
+ * `/api/v1/example` is called via Angular HttpClient without auth
+ * (the spec doesn't sign in first). Backend AuthLayer rejects with
+ * HTTP 401, which the component counts as `pass` ("auth wiring on"
+ * — message in fleet-status.component.ts:189). Strict assertion:
+ * every peer row must reach `pass`, not just terminal-state.
  *
- * The strict "every peer returns 200" assertion requires CORS to be
- * allowed on each backend template (Phase A.5c, separate workstream).
- * Until then, this spec asserts "call completed" not "call succeeded".
+ * Tightened from "non-pending" to strict-pass after backend CORS
+ * landed (jx-build-cluster-gsm#399 / akv#242). The earlier relaxed
+ * assertion masked the missing-CORS issue — a row could be `fail`
+ * with status=0 "CORS blocked" and still pass the spec.
  */
 test.describe('fleet status', () => {
   test.beforeEach(() => {
@@ -53,27 +54,24 @@ test.describe('fleet status', () => {
     }
   });
 
-  test('every peer reaches a terminal state (call was attempted)', async ({ page }) => {
+  test('every peer returns the expected 401 (audience-bound auth wiring proven)', async ({ page }) => {
     await page.goto('/fleet-status', { waitUntil: 'networkidle', timeout: 15_000 });
 
-    // Wait for the page's async fleet check to settle. Each row's
-    // status moves from `pending` → `pass`/`fail` once its fetch
-    // completes. Either outcome is acceptable signal that the SDK
-    // call was attempted:
+    // Wait for the async fleet check to settle. Each row moves from
+    // `pending` → `pass`/`fail`. `pass` requires the call to land
+    // either HTTP 200 (authed) or 401 (unauthed but reached the
+    // backend with CORS allowed) — see fleet-status.component.ts:186.
+    // The spec doesn't sign in first, so the expected outcome is 401
+    // on every peer.
     //
-    //   - `pass` = peer returned the expected 401 (CORS allowed +
-    //     auth wiring on)
-    //   - `fail` = peer returned a non-401 OR CORS blocked the fetch
-    //     ('Failed to fetch'). Both still prove the page COMPOSED the
-    //     right URL and FIRED the call — the SDK code path executes.
-    //
-    // The strict `must be 401` assertion comes back once the backend
-    // templates ship CORS headers for this origin (Phase A.5c). Until
-    // then, asserting non-pending is the load-bearing signal.
-    const overallPending = page.getByTestId('overall-pending');
-    await expect(overallPending, 'fleet check still pending').toHaveCount(0, {
-      timeout: 15_000,
-    });
+    // A `fail` row (status=0 CORS-blocked, 5xx, etc.) means the
+    // staging wiring is broken — either backend ingress missing CORS
+    // annotations, or the peer is down. Either is a real defect
+    // worth surfacing.
+    await expect(
+      page.getByTestId('overall-pass'),
+      'overall verdict must be pass — backend CORS + audience-bound auth must be live',
+    ).toBeVisible({ timeout: 15_000 });
 
     for (const svc of [
       'leartech-rust-service-template',
@@ -81,11 +79,7 @@ test.describe('fleet status', () => {
       'leartech-go-service-template',
     ]) {
       const status = page.getByTestId(`status-${svc}`);
-      // Must not be pending — must have a terminal verdict.
-      await expect(status, `${svc} should not be pending`).not.toContainText('pending');
+      await expect(status, `${svc} must reach pass (HTTP 200 or 401)`).toContainText('pass');
     }
-
-    // Overall row must reach a terminal verdict too (not pending).
-    await expect(page.getByTestId('overall-pending')).toHaveCount(0);
   });
 });
