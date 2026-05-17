@@ -84,7 +84,7 @@ interface ExampleResponse {
                   }
                 </span>
               </td>
-              <td>{{ call.httpCode ?? '—' }}</td>
+              <td [attr.data-testid]="'http-' + call.service">{{ call.httpCode ?? '—' }}</td>
               <td>{{ call.durationMs ? call.durationMs + 'ms' : '—' }}</td>
               <td class="msg">{{ call.message ?? '' }}</td>
             </tr>

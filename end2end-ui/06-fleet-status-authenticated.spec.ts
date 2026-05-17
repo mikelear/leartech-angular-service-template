@@ -88,14 +88,19 @@ test.describe('fleet status — authenticated', () => {
       const status = page.getByTestId(`status-${svc}`);
       await expect(row).toBeVisible();
       await expect(status, `${svc} must reach pass`).toContainText('pass');
-      // HTTP column should show 200 (authed succeeded), not 401
-      // (which would mean the backend's AuthLayer rejected the
-      // bearer's audience — a downstream defect since the SPA does
-      // include this audience in its api.conf.json).
+
+      // Specifically assert the HTTP column is 200. Pinpoint cell via
+      // data-testid="http-<svc>" rather than the looser row.toContainText
+      // approach — the duration column ("267ms") and message text can
+      // also contain "200", which would mask a failure. The companion
+      // 03-fleet-status spec also asserts http=401 unauth on this same
+      // testid, catching the mirror regression shape (200 unauth =
+      // middleware not enforcing).
+      const http = page.getByTestId(`http-${svc}`);
       await expect(
-        row,
+        http,
         `${svc} expected HTTP 200 with bearer-authed call; 401 means audience-validation defect on this backend`,
-      ).toContainText('200');
+      ).toHaveText('200');
     }
   });
 });

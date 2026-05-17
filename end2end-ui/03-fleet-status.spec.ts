@@ -58,16 +58,21 @@ test.describe('fleet status', () => {
     await page.goto('/fleet-status', { waitUntil: 'networkidle', timeout: 15_000 });
 
     // Wait for the async fleet check to settle. Each row moves from
-    // `pending` → `pass`/`fail`. `pass` requires the call to land
-    // either HTTP 200 (authed) or 401 (unauthed but reached the
-    // backend with CORS allowed) — see fleet-status.component.ts:186.
-    // The spec doesn't sign in first, so the expected outcome is 401
-    // on every peer.
+    // `pending` → `pass`/`fail`. `pass` is set by the component for
+    // either HTTP 200 (authed) or 401 (unauthed reached the backend) —
+    // so the `pass` status alone is too permissive for this spec.
     //
-    // A `fail` row (status=0 CORS-blocked, 5xx, etc.) means the
-    // staging wiring is broken — either backend ingress missing CORS
-    // annotations, or the peer is down. Either is a real defect
-    // worth surfacing.
+    // Manual testing on 2026-05-17 caught the false positive: go-template's
+    // auth middleware was misconfigured (chart env var `AUTH_TOKENURL`
+    // didn't match go-common's `ServerURL` field, so middleware noop'd
+    // and `/api/v1/example` returned 200 unauthenticated). The row read
+    // "pass" because 200 is in the OR — but it was hiding a security
+    // regression. Assert the specific HTTP code (401) per peer so that
+    // shape of failure can never slip through again.
+    //
+    // A `fail` row (status=0 CORS-blocked, 5xx, etc.) means the staging
+    // wiring is broken — either backend ingress missing CORS annotations,
+    // or the peer is down. Either is a real defect worth surfacing.
     await expect(
       page.getByTestId('overall-pass'),
       'overall verdict must be pass — backend CORS + audience-bound auth must be live',
@@ -79,7 +84,16 @@ test.describe('fleet status', () => {
       'leartech-go-service-template',
     ]) {
       const status = page.getByTestId(`status-${svc}`);
-      await expect(status, `${svc} must reach pass (HTTP 200 or 401)`).toContainText('pass');
+      await expect(status, `${svc} must reach pass`).toContainText('pass');
+
+      // Specifically assert 401, not 200. A 200 unauthenticated would
+      // mean the peer's auth middleware isn't enforcing — exactly the
+      // shape of regression that bit go-template in staging.
+      const http = page.getByTestId(`http-${svc}`);
+      await expect(
+        http,
+        `${svc} must return 401 unauthenticated — 200 would mean auth middleware is broken`,
+      ).toHaveText('401');
     }
   });
 });
