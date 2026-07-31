@@ -1,0 +1,6 @@
+{
+  "name": "leartech-angular-service-template-end2end-ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Playwright specs for the golden Angular service template. Kept as a standalone npm package so the arrivals-observer runner (which does `cd end2end-ui && npm ci || npm install`) succeeds cleanly against a directory that would otherwise have no package.json — under `set -euo pipefail` both commands ENOENT and the pod exits BEFORE playwright runs, so no test-results are ever uploaded. See ~/leartech/Hub/status/postdeploy-e2eui-npm-ci-failure.md. Playwright itself is provided globally by the leartech playwright-runner image via NODE_PATH=/usr/lib/node_modules, so this file declares NO dependencies — `npm ci` is effectively a no-op that just proves the manifest is well-formed."
+}
