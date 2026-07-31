@@ -44,6 +44,15 @@ spec:
     always_run: true
     optional: true
     source: end2end-ui.yaml
+  # crawlability / SEO check that runs against the deployed preview
+  # (raw HTTP fetch, no JS) and posts a markdown PR comment. Marked
+  # optional until the shared catalog task lands — the in-tree
+  # script (`scripts/seo-preview-check.mjs`) works today.
+  - name: seo-preview
+    context: "seo-preview"
+    always_run: true
+    optional: true
+    source: seo-preview.yaml
   - name: ai-feedback
     context: ai-feedback
     always_run: false

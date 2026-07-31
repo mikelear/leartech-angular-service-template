@@ -5,6 +5,55 @@
   <title>leartech-angular-service-template</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!--
+    Site-wide SEO defaults. These are the fallbacks rendered on EVERY
+    prerendered page. Per-route overrides (title, description, OG,
+    Twitter) come from `AppTitleStrategy` reading `data.title` /
+    `data.description` off the matched route at build time.
+
+    Absolute URLs (canonical / og:url / og:image / sitemap) use the
+    `__CANONICAL_HOST__` placeholder which the static server (nginx
+    entrypoint) rewrites via `envsubst` at container start to the
+    chart-driven `seo.canonicalHost`. → ONE static artifact,
+    correct-per-deployment SEO URLs.
+  -->
+
+  <meta name="description" content="Golden Angular 20 SPA service template — prerendered for crawlers and AI clients, static-hostable, multi-cluster CI/CD.">
+  <meta name="theme-color" content="#0066cc">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Leartech Angular service template">
+  <meta property="og:description" content="Golden Angular 20 SPA service template — prerendered, static-hostable, multi-cluster CI/CD.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Leartech">
+  <meta property="og:url" content="__CANONICAL_HOST__/">
+  <meta property="og:image" content="__CANONICAL_HOST__/social-preview.png">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Leartech Angular service template">
+  <meta name="twitter:description" content="Golden Angular 20 SPA service template — prerendered, static-hostable, multi-cluster CI/CD.">
+  <meta name="twitter:image" content="__CANONICAL_HOST__/social-preview.png">
+
+  <link rel="canonical" href="__CANONICAL_HOST__/">
+
+  <!--
+    Organization JSON-LD. Placeholder identity — cloned services
+    replace `name`, `url`, `logo`, and add their real social links
+    inside `sameAs`. Structured data is READ by AI clients (OpenAI /
+    Perplexity / Google's Gemini) to build the entity graph for the
+    site.
+  -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Leartech",
+    "url": "__CANONICAL_HOST__/",
+    "logo": "__CANONICAL_HOST__/logo.png"
+  }
+  </script>
 </head>
 <body>
   <app-root></app-root>

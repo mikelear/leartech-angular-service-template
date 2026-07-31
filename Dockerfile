@@ -17,7 +17,47 @@ RUN npm run build
 # /health JSON probe, gzip, 1y cache on hashed static assets. Runs as uid 101.
 FROM ghcr.io/mikelear/leartech-nginx:0.41.15
 
+# ---------------------------------------------------------------
+# SSR / prerender static output.
+#
+# Angular's `outputMode: "static"` emits a `browser/` tree that
+# contains, for each Prerender-mode route, its OWN `index.html`
+# (`/index.html`, `/fleet-status/index.html`, …). We serve these as
+# real static files with a `$uri` -> `$uri/index.html` -> `/index.html`
+# try_files chain so:
+#
+#   GET /                → browser/index.html            (prerendered)
+#   GET /fleet-status    → browser/fleet-status/index.html (prerendered)
+#   GET /app/dashboard   → browser/index.html            (SPA fallback,
+#                                                          Client-mode)
+#
+# The default leartech-nginx `try_files $uri $uri/ /index.html`
+# fallback would serve the ROOT index.html for `/fleet-status` and
+# defeat prerender — hence the per-route conf below.
+# ---------------------------------------------------------------
 COPY --from=build /app/dist/leartech-angular-service-template/browser /usr/share/nginx/html
+
+# Static-serving config: try file → try dir/index.html → SPA fallback.
+COPY nginx/conf.d/leartech-spa.conf /etc/nginx/conf.d/default.conf
+
+# ---------------------------------------------------------------
+# Canonical-host substitution.
+#
+# `robots.txt`, `sitemap.xml`, `index.html`, and every prerendered
+# route's `index.html` contain a `__CANONICAL_HOST__` token where the
+# canonical URL / OG url / sitemap host should go. At container start
+# we rewrite it to the value of the `CANONICAL_HOST` env var (set by
+# the chart from `seo.canonicalHost`), keeping ONE static artifact
+# reusable across preview / staging / prod.
+#
+# In preview the placeholder stays as the marketing/prod domain by
+# design — the preview crawlability check asserts presence + well-
+# formedness, not host equality. Exact prod-domain correctness is a
+# prod-only concern.
+# ---------------------------------------------------------------
+COPY nginx/docker-entrypoint.d/40-canonical-host.sh /docker-entrypoint.d/40-canonical-host.sh
+USER root
+RUN chmod +x /docker-entrypoint.d/40-canonical-host.sh
 
 # USER + EXPOSE inherited from base image. Declared explicitly here so
 # security scanners that don't chase base-image layers (semgrep's
