@@ -1,16 +1,13 @@
 replicaCount: 1
-
 image:
-  repository: ghcr.io/mikelear/leartech-angular-service-template
-  tag: latest
+  repository: us-central1-docker.pkg.dev/product-first/oci/leartech-angular-service-template
+  tag: 0.0.40
   pullPolicy: IfNotPresent
-
 service:
   name: leartech-angular-service-template
   type: ClusterIP
   port: 80
   externalPort: 80
-
 # ---------------------------------------------------------------
 # Ingress. Two shapes are supported:
 #
@@ -45,7 +42,6 @@ ingress:
   # jxRequirements-driven path below. When set, this overrides
   # jxRequirements.ingress.domain completely.
   hosts: []
-
 # jxRequirements — auto-populated from jx-values.yaml per cluster/env.
 # Do NOT hardcode domains here. Preview gets domain from jx preview create,
 # staging/prod from the GitOps helmfile jx-values.yaml.
@@ -62,9 +58,7 @@ jxRequirements:
       enabled: false
       production: false
       secretName: ""
-
 knativeDeploy: false
-
 resources:
   requests:
     cpu: 50m
@@ -72,10 +66,8 @@ resources:
   limits:
     cpu: 100m
     memory: 128Mi
-
 jx:
   releasedByJX: true
-
 # ---------------------------------------------------------------
 # SEO configuration.
 #
@@ -96,7 +88,6 @@ jx:
 # ---------------------------------------------------------------
 seo:
   canonicalHost: ""
-
 # Runtime config served at /api.conf.json — populated per-environment in
 # preview helmfile / staging / prod values files. See
 # hub/shared-rules/conventions.md § Frontend runtime config.
@@ -117,9 +108,9 @@ config:
     authority: ""
     scope: "openid profile email leartechapi offline"
     audiences:
-      - leartech-rust-service-template
-      - leartech-go-service-template
-      - leartech-dotnet-service-template
+    - leartech-rust-service-template
+    - leartech-go-service-template
+    - leartech-dotnet-service-template
   # Peer service base URLs — fleet-status reads these instead of
   # composing them in source. Cloned services replace this with the
   # actual peers their UI consumes.
