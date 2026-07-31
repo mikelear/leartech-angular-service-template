@@ -1,29 +1,103 @@
 {{/*
-Ingress template using jxRequirements pattern.
+Ingress template.
 
-Domain and namespaceSubDomain come from jx-values.yaml (auto-generated
-per cluster and per environment). No hardcoded domains anywhere.
+TWO shapes are supported. The template picks the first one that has
+values wired:
 
-Preview: jx preview create populates jx-values.yaml with the cluster's
-domain + namespaceSubDomain "-prN."
-Staging: jx-values.yaml in the GitOps helmfile has domain + "-jx-staging."
-Production: same pattern with "-jx-production."
+1. Explicit multi-host list — set `ingress.hosts:` in values.yaml:
+
+     ingress:
+       hosts:
+         - host: www.example.com
+           tlsSecret: tls-www-example-p
+         - host: example.com
+           tlsSecret: tls-example-p
+
+   The chart renders ONE Ingress resource with per-host `rules[]` and
+   per-host `tls[]` blocks so a single deployment fronts multiple
+   canonical domains. Use for marketing-site + product-domain,
+   www<->apex aliases, or transitional migrations.
+
+   `seo.canonicalHost` is INDEPENDENT of this list — with multiple
+   served hosts, one MUST be declared canonical or crawlers treat the
+   copies as duplicate content.
+
+2. Legacy jxRequirements single-host — the default when
+   `ingress.hosts` is empty. Domain + namespaceSubDomain come from
+   `jx-values.yaml` (auto-generated per cluster and per environment).
+   Preview: jx preview create populates jx-values.yaml with the
+   cluster's domain + namespaceSubDomain "-prN.". Staging: same
+   pattern with "-jx-staging." Prod: "-jx-production."
 
 Usage in chart templates/ingress.yaml:
   {{ include "leartech.ingress" . }}
-
-Requires values:
-  jxRequirements.ingress.domain
-  jxRequirements.ingress.namespaceSubDomain (default: -jx.)
-  service.name (or falls back to fullname)
-  service.externalPort (default: 8080)
-  ingress.annotations (optional)
-  ingress.pathType (default: ImplementationSpecific)
-  ingress.labels (optional)
 */}}
 
 {{- define "leartech.ingress" -}}
-{{- if and (.Values.jxRequirements.ingress.domain) (not .Values.knativeDeploy) }}
+{{- if .Values.knativeDeploy }}
+{{/* knative bypasses raw Ingress — nothing to render here. */}}
+{{- else if gt (len (.Values.ingress.hosts | default list)) 0 }}
+{{ include "leartech.ingress.multiHost" . }}
+{{- else if .Values.jxRequirements.ingress.domain }}
+{{ include "leartech.ingress.singleHost" . }}
+{{- end }}
+{{- end -}}
+
+{{/* ---------- Multi-host explicit-list Ingress ---------- */}}
+{{- define "leartech.ingress.multiHost" -}}
+{{- $hostName := .Values.service.name | default (include "leartech.fullname" .) }}
+{{- $backendName := include "leartech.fullname" . }}
+{{- $svcPort := .Values.service.externalPort | default 8080 }}
+{{- $annotations := dict }}
+{{- $_ := merge $annotations (.Values.ingress.annotations | default dict) }}
+{{- if not (hasKey $annotations "kubernetes.io/ingress.class") }}
+{{- $_ := set $annotations "kubernetes.io/ingress.class" (.Values.ingress.classAnnotation | default "nginx") }}
+{{- end }}
+apiVersion: {{ .Values.jxRequirements.ingress.apiVersion | default "networking.k8s.io/v1" }}
+kind: Ingress
+metadata:
+  name: {{ $hostName }}
+  labels:
+    {{- include "leartech.labels" . | nindent 4 }}
+    {{- with .Values.ingress.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- if $annotations }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+  {{- end }}
+spec:
+  rules:
+  {{- range .Values.ingress.hosts }}
+  - host: {{ .host }}
+    http:
+      paths:
+      - path: /
+        pathType: {{ $.Values.ingress.pathType | default "ImplementationSpecific" }}
+        backend:
+          service:
+            name: {{ $backendName }}
+            port:
+              number: {{ $svcPort }}
+  {{- end }}
+  {{- $tlsHosts := list }}
+  {{- range .Values.ingress.hosts }}
+  {{- if .tlsSecret }}
+  {{- $tlsHosts = append $tlsHosts . }}
+  {{- end }}
+  {{- end }}
+  {{- if gt (len $tlsHosts) 0 }}
+  tls:
+  {{- range $tlsHosts }}
+  - hosts:
+    - {{ .host }}
+    secretName: {{ .tlsSecret }}
+  {{- end }}
+  {{- end }}
+{{- end -}}
+
+{{/* ---------- Legacy single-host jxRequirements Ingress ---------- */}}
+{{- define "leartech.ingress.singleHost" -}}
 {{- $hostName := .Values.service.name | default (include "leartech.fullname" .) }}
 {{- $backendName := include "leartech.fullname" . }}
 {{- $svcPort := .Values.service.externalPort | default 8080 }}
@@ -65,7 +139,6 @@ spec:
     secretName: "tls-{{ .Values.jxRequirements.ingress.domain | replace "." "-" }}-p"
 {{- else }}
     secretName: "tls-{{ .Values.jxRequirements.ingress.domain | replace "." "-" }}-s"
-{{- end }}
 {{- end }}
 {{- end }}
 {{- end -}}

@@ -1,0 +1,20 @@
+# Golden robots.txt for services cloned from
+# leartech-angular-service-template. Consumers set their own domain via
+# the chart's `seo.canonicalHost` value; the static runtime rewrites
+# the __CANONICAL_HOST__ placeholder below at container start (envsubst
+# in the nginx entrypoint) so this file is served with the actual
+# canonical URL for the deployment.
+#
+# Preview environments intentionally do NOT reset the placeholder to
+# their preview hostname — SEO discovery is a prod-only concern; the
+# preview crawlability check asserts presence + well-formed structure,
+# not exact host matching.
+
+User-agent: *
+Allow: /
+
+# Never crawl the OIDC callback (behind the auth flow — no useful
+# content and burns crawl budget on redirects).
+Disallow: /auth/callback
+
+Sitemap: __CANONICAL_HOST__/sitemap.xml

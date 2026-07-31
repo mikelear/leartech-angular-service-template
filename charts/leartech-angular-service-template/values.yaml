@@ -11,11 +11,40 @@ service:
   port: 80
   externalPort: 80
 
-# Ingress annotations + overrides (domain comes from jxRequirements)
+# ---------------------------------------------------------------
+# Ingress. Two shapes are supported:
+#
+#   1. Legacy single-host (via `jxRequirements.ingress.domain` +
+#      `namespaceSubDomain`) — the default. Preview / staging / prod
+#      helmfiles populate `jxRequirements` per-cluster and one Ingress
+#      is rendered against `service.name<sub>.<domain>`. Keeps the
+#      base template working without any chart-values changes.
+#
+#   2. Explicit multi-host list — set `ingress.hosts:` and the
+#      chart binds the Ingress to every host in the list (with TLS
+#      per host). Use this when a single deployment fronts several
+#      canonical domains (marketing site + product domain, alias
+#      redirects, etc.). Example:
+#
+#      ingress:
+#        hosts:
+#          - host: www.example.com
+#            tlsSecret: tls-www-example-p
+#          - host: example.com
+#            tlsSecret: tls-example-p
+#
+# WHATEVER shape is used, `seo.canonicalHost` MUST be a single
+# domain. With multiple served hosts, one must be the canonical
+# (crawlers treat the copies as duplicate content otherwise).
+# ---------------------------------------------------------------
 ingress:
   annotations: {}
   pathType: ImplementationSpecific
   labels: {}
+  # Explicit multi-host list. Empty → fall back to the single-host
+  # jxRequirements-driven path below. When set, this overrides
+  # jxRequirements.ingress.domain completely.
+  hosts: []
 
 # jxRequirements — auto-populated from jx-values.yaml per cluster/env.
 # Do NOT hardcode domains here. Preview gets domain from jx preview create,
@@ -46,6 +75,27 @@ resources:
 
 jx:
   releasedByJX: true
+
+# ---------------------------------------------------------------
+# SEO configuration.
+#
+# canonicalHost is the SINGLE canonical URL crawlers should treat
+# as the source of truth for content served by this deployment.
+# Rewritten into every served HTML / robots.txt / sitemap.xml at
+# container start (see nginx/docker-entrypoint.d/40-canonical-host.sh
+# in the Dockerfile).
+#
+# MUST include the scheme (`https://example.com`, NOT `example.com`).
+# Trailing slash is stripped automatically by the entrypoint.
+#
+# Preview values.yaml.gotmpl deliberately leaves this at the prod
+# domain — SEO discovery is a prod-only concern; the preview
+# crawlability check asserts presence + structure, not host equality.
+# If left empty, the __CANONICAL_HOST__ placeholder remains in place
+# (fine for local `docker run` / early-iteration previews).
+# ---------------------------------------------------------------
+seo:
+  canonicalHost: ""
 
 # Runtime config served at /api.conf.json — populated per-environment in
 # preview helmfile / staging / prod values files. See

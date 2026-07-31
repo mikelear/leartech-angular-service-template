@@ -1,5 +1,12 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  Injector,
+  OnInit,
+  PLATFORM_ID,
+  inject,
+  signal,
+} from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
 
@@ -16,6 +23,17 @@ interface TokenClaims {
  * App shell with OIDC auth state. Mirrors leartech-auth-ui's HomeComponent
  * pattern — shows authenticated user info + token claims so the
  * login-flow Playwright spec can verify the round-trip succeeded.
+ *
+ * SSR / prerender safety:
+ *   - `OidcSecurityService` is NOT provided in the server config
+ *     (see `app.config.server.ts` — auth is browser-only), so we
+ *     avoid calling `inject(OidcSecurityService)` at field-init time.
+ *     Instead we inject it lazily inside `ngOnInit` via the parent
+ *     `Injector`, guarded by `isPlatformBrowser(...)`.
+ *   - The template's authenticated branch is gated by
+ *     `isAuthenticated()`, which stays `false` on the server. The
+ *     prerendered HTML therefore renders the anonymous shell (nav +
+ *     `Sign in` button) — which is the correct crawler-visible view.
  */
 @Component({
   selector: 'app-root',
@@ -26,6 +44,7 @@ interface TokenClaims {
         <h1>{{ title }}</h1>
         <p class="sub">Golden Angular SPA service template.</p>
         <nav>
+          <a routerLink="/">Home</a>
           <a routerLink="/fleet-status">Fleet status</a>
           @if (isAuthenticated()) {
             <button type="button" (click)="logout()" class="link-button">Sign out</button>
@@ -43,18 +62,6 @@ interface TokenClaims {
           <h3>Token info</h3>
           <pre class="token-display" data-testid="token-payload">{{ tokenPayload() | json }}</pre>
         </section>
-      } @else {
-        <section>
-          <p>
-            Clone this repo, rename <code>leartech-angular-service-template</code>
-            everywhere, and start building. See <code>CLAUDE.md</code> for the
-            per-service wiring checklist.
-          </p>
-          <p>
-            Click <strong>Sign in</strong> to drive the OAuth flow against the
-            configured Hydra and validate the SPA's audience-bound token chain.
-          </p>
-        </section>
       }
       <router-outlet />
     </main>
@@ -68,20 +75,30 @@ interface TokenClaims {
   `],
 })
 export class AppComponent implements OnInit {
-  private readonly oidc = inject(OidcSecurityService);
+  private readonly injector = inject(Injector);
+  private readonly platformId = inject(PLATFORM_ID);
+  private oidc: OidcSecurityService | null = null;
   title = 'leartech-angular-service-template';
 
   isAuthenticated = signal(false);
   tokenPayload = signal<TokenClaims | null>(null);
 
   ngOnInit(): void {
+    // SSR-safety: skip OIDC on the server. `OidcSecurityService` is
+    // NOT in the server DI graph (auth is browser-only per
+    // `app.config.server.ts`), so we resolve it lazily via the parent
+    // `Injector` — only in the browser.
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    this.oidc = this.injector.get(OidcSecurityService);
     this.oidc.isAuthenticated$.subscribe(({ isAuthenticated }) => {
       this.isAuthenticated.set(isAuthenticated);
       if (!isAuthenticated) {
         this.tokenPayload.set(null);
         return;
       }
-      this.oidc.getAccessToken().subscribe((token) => {
+      this.oidc?.getAccessToken().subscribe((token) => {
         if (!token) {
           this.tokenPayload.set(null);
           return;
@@ -98,10 +115,10 @@ export class AppComponent implements OnInit {
   }
 
   login(): void {
-    this.oidc.authorize();
+    this.oidc?.authorize();
   }
 
   logout(): void {
-    this.oidc.logoff().subscribe();
+    this.oidc?.logoff().subscribe();
   }
 }

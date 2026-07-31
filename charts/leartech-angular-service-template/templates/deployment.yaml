@@ -22,6 +22,15 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          # CANONICAL_HOST drives the container-start substitution of
+          # __CANONICAL_HOST__ in every prerendered HTML / robots.txt
+          # / sitemap.xml. Set from `.Values.seo.canonicalHost`; if
+          # empty, the placeholder stays in place (harmless — preview
+          # environments intentionally use this behaviour so SEO
+          # discovery stays a prod-only concern).
+          env:
+            - name: CANONICAL_HOST
+              value: {{ .Values.seo.canonicalHost | default "" | quote }}
           livenessProbe:
             httpGet:
               path: /health

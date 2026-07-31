@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Golden sitemap.xml for services cloned from
+  leartech-angular-service-template. Lists the template's default
+  public / marketing routes.
+
+  The __CANONICAL_HOST__ placeholder is rewritten at container start
+  (envsubst in the nginx entrypoint) to the value of the chart's
+  `seo.canonicalHost`. This keeps the same static artifact reusable
+  across preview / staging / prod deployments.
+
+  Consuming services extend this list to include every public route
+  they add. Do NOT list authenticated / behind-auth routes here;
+  crawlers can't reach them and their absence from the sitemap saves
+  crawl budget for real content.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>__CANONICAL_HOST__/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>__CANONICAL_HOST__/fleet-status</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>

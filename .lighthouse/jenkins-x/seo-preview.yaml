@@ -1,0 +1,51 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  creationTimestamp: null
+  name: seo-preview
+spec:
+  pipelineSpec:
+    tasks:
+    - name: seo-preview
+      resources: {}
+      taskSpec:
+        metadata: {}
+        stepTemplate:
+          # NOTE — the catalog task at this path is the target for
+          # lifting `scripts/seo-preview-check.mjs` into a shared
+          # step (reusable across every service cloned from this
+          # template). Until it lands, the trigger below is marked
+          # `optional: true` so a missing catalog task doesn't block
+          # the merge gate. The script IS in-tree today so consumers
+          # can already exercise it locally against a preview URL:
+          #
+          #   PREVIEW_URL=https://... PR_NUMBER=… REPO_OWNER=… REPO_NAME=… \
+          #     node scripts/seo-preview-check.mjs
+          image: uses:mikelear/leartech-pipeline-catalog/tasks/seo-preview/pullrequest.yaml@main
+          name: ""
+          env:
+          - name: GIT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: tekton-git
+                key: password
+                optional: true
+          # Routes to fetch as raw HTML (no JavaScript). Consumers
+          # extend this list with any additional public / marketing
+          # routes their SPA adds.
+          - name: PREVIEW_ROUTES
+            value: "/,/fleet-status"
+          resources: {}
+          workingDir: /workspace/source
+        steps:
+        - name: ""
+          resources: {}
+  podTemplate:
+    tolerations:
+    - key: sku
+      operator: Equal
+      value: build
+      effect: NoSchedule
+  serviceAccountName: tekton-bot
+  timeout: 15m0s
+status: {}
