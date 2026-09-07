@@ -15,7 +15,7 @@ RUN npm run build
 # ---- runtime stage ----
 # leartech-nginx bakes in: port 8080, SPA try_files fallback to index.html,
 # /health JSON probe, gzip, 1y cache on hashed static assets. Runs as uid 101.
-FROM ghcr.io/mikelear/leartech-nginx:0.51.1
+FROM ghcr.io/mikelear/leartech-nginx:0.51.3
 
 # ---------------------------------------------------------------
 # SSR / prerender static output.
