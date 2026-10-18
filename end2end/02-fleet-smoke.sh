@@ -29,7 +29,7 @@ set -eo pipefail
 # dispatch us?" rather than guessing from BRANCH_NAME / PIPELINE_KIND.
 if [ -z "${STAGING_URL:-}" ]; then
   echo "[fleet-smoke] STAGING_URL unset — running in PR/preview context, skipping fleet check"
-  exit 0
+  exit 77  # SKIP, not success: exit 0 here reports a pass for a check that did not run (leartech-exit-zero-after-skip)
 fi
 
 # Extract the cluster suffix from our own staging URL so the smoke

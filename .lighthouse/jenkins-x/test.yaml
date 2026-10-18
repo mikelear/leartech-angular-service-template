@@ -15,11 +15,12 @@ spec:
           name: ""
           resources: {}
           workingDir: /workspace/source
-          # Template has one trivial spec. Lower the threshold until
-          # consumers add real suites. Matches the Go template pattern.
+          # The template now ships real specs for every component/service
+          # (app, landing, fleet-status, auth-callback, seo). 60% is the floor a
+          # clone starts above, so a consumer's first PR cannot regress below it.
           env:
           - name: COVERAGE_THRESHOLD
-            value: "30.0"
+            value: "60.0"
         steps:
         - name: ""
           resources: {}
