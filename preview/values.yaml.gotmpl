@@ -23,3 +23,10 @@ resources:
 config:
   api: ""
   featureFlags: {}
+
+# Gateway API for PREVIEWS (the Envoy migration). nginx is decommissioned on all
+# clusters; the leartech.ingress helper renders a legacy Ingress unless this is
+# set, and Envoy does not serve Ingress — so a preview without it answers 404 on
+# every path. Mirrors leartech-ba-service/preview/values.yaml.gotmpl.
+gateway:
+  enabled: true

@@ -19,6 +19,7 @@ results_file="$SCRIPT_DIR/results.json"
 tests_json="[]"
 passed=0
 failed=0
+skipped=0
 
 shopt -s nullglob
 scripts=("$SCRIPT_DIR"/[0-9][0-9]-*.sh)
@@ -30,9 +31,18 @@ else
     log="$SCRIPT_DIR/$name.log"
     echo "[end2end] running $name"
     t0=$(date +%s%3N)
-    if bash "$script" >"$log" 2>&1; then
+    # SKIP_EXIT=77 is the skip convention (a script with no environment to run
+    # against exits 77, not 0 — leartech-exit-zero-after-skip). The staging
+    # runner honours it; this file must too, or a legitimate skip reads as a
+    # failure and sets Arrival.phase=Failed.
+    rc=0
+    bash "$script" >"$log" 2>&1 || rc=$?
+    if [ "$rc" -eq 0 ]; then
       status="pass"; message="OK"
       passed=$((passed + 1))
+    elif [ "$rc" -eq "${SKIP_EXIT:-77}" ]; then
+      status="skip"; message="skipped (exit $rc)"
+      skipped=$((skipped + 1))
     else
       status="fail"
       message=$(tail -3 "$log" 2>/dev/null | tr '\n' ' ' | head -c 300)
@@ -49,8 +59,8 @@ else
       '. + [{name: $name, status: $status, duration_ms: $duration, message: $message}]' \
       <<< "$tests_json")
   done
-  total=$((passed + failed))
-  summary="$passed/$total checks passed"
+  total=$((passed + failed + skipped))
+  summary="$passed/$total passed, $skipped skipped"
 fi
 
 if [ $failed -eq 0 ] && [ ${#scripts[@]} -gt 0 ]; then
