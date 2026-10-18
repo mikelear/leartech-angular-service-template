@@ -34,13 +34,63 @@ Usage in chart templates/ingress.yaml:
 */}}
 
 {{- define "leartech.ingress" -}}
+{{- $gw := .Values.gateway | default dict -}}
+{{- $global := .Values.global | default dict -}}
+{{- $gwEnabled := false -}}
+{{- if hasKey $global "gatewayAPIEnabled" }}{{- $gwEnabled = $global.gatewayAPIEnabled -}}{{- end -}}
+{{- if hasKey $gw "enabled" }}{{- if $gw.enabled }}{{- $gwEnabled = true -}}{{- end -}}{{- end -}}
 {{- if .Values.knativeDeploy }}
 {{/* knative bypasses raw Ingress — nothing to render here. */}}
+{{- else if $gwEnabled }}
+{{/* Gateway API edge (Envoy): nginx is decommissioned, so an Ingress would
+     404. Render an HTTPRoute attached to the shared envoy Gateway instead.
+     Multi-host and single-host both map to HTTPRoute hostnames. */}}
+{{ include "leartech.httproute" . }}
 {{- else if gt (len (.Values.ingress.hosts | default list)) 0 }}
 {{ include "leartech.ingress.multiHost" . }}
 {{- else if .Values.jxRequirements.ingress.domain }}
 {{ include "leartech.ingress.singleHost" . }}
 {{- end }}
+{{- end -}}
+
+{{/* ---------- Gateway API HTTPRoute (Envoy) ---------- */}}
+{{- define "leartech.httproute" -}}
+{{- $gw := .Values.gateway | default dict -}}
+{{- $backendName := include "leartech.fullname" . -}}
+{{- $svcPort := .Values.service.externalPort | default 8080 -}}
+{{- $hosts := list -}}
+{{- if gt (len (.Values.ingress.hosts | default list)) 0 -}}
+{{- range .Values.ingress.hosts }}{{- $hosts = append $hosts .host -}}{{- end -}}
+{{- else -}}
+{{- $single := printf "%s%s%s" (.Values.service.name | default (include "leartech.fullname" .)) .Values.jxRequirements.ingress.namespaceSubDomain .Values.jxRequirements.ingress.domain -}}
+{{- $hosts = append $hosts $single -}}
+{{- end -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.service.name | default (include "leartech.fullname" .) }}
+  labels:
+    {{- include "leartech.labels" . | nindent 4 }}
+    {{- with .Values.ingress.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  parentRefs:
+  - name: {{ $gw.name | default "envoy-gateway" }}
+    namespace: {{ $gw.namespace | default "envoy-gateway-system" }}
+    sectionName: {{ $gw.sectionName | default "https" }}
+  hostnames:
+  {{- range $hosts }}
+  - {{ . | quote }}
+  {{- end }}
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: "/"
+    backendRefs:
+    - name: {{ $backendName }}
+      port: {{ $svcPort }}
 {{- end -}}
 
 {{/* ---------- Multi-host explicit-list Ingress ---------- */}}
