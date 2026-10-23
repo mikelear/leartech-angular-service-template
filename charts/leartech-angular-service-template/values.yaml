@@ -129,8 +129,6 @@ config:
     leartech-dotnet-service-template: ""
   featureFlags: {}
 
-# Gateway API (Envoy) is the only front door — nginx is decommissioned. Render an
-# HTTPRoute, never the legacy nginx Ingress, for staging/prod as well as preview.
-# proven-by: the service is reachable only via its HTTPRoute (cluster has no nginx).
+# Render an Envoy Gateway HTTPRoute (not the legacy nginx Ingress) by default.
 gateway:
   enabled: true
